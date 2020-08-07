@@ -16,6 +16,14 @@ Network Theory
     
     networktheory/*
 
+Matching
+------------------
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    matching/*
+
 Metrology and Calibration
 --------------------------
 
@@ -61,7 +69,15 @@ Internals
     :glob:
     
     internals/*
-    
+
+Instrument Control
+------------------
+.. toctree::
+    :maxdepth: 1
+    :glob:
+
+    instrumentcontrol/*
+
 Interactive
 ------------------
 

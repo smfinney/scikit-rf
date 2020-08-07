@@ -1,5 +1,6 @@
 """
 .. module:: skrf.io.touchstone
+
 ========================================
 touchstone (:mod:`skrf.io.touchstone`)
 ========================================
@@ -7,19 +8,21 @@ touchstone (:mod:`skrf.io.touchstone`)
 Touchstone class
 
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
-    Touchstone
-
+   Touchstone
 
 Functions related to reading/writing touchstones.
+-------------------------------------------------
 
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
-    hfss_touchstone_2_gamma_z0
-    hfss_touchstone_2_media
-    hfss_touchstone_2_network
+   hfss_touchstone_2_gamma_z0
+   hfss_touchstone_2_media
+   hfss_touchstone_2_network
+   read_zipped_touchstones
+
 """
 import re
 import os
@@ -301,11 +304,19 @@ class Touchstone:
 
     def get_sparameter_names(self, format="ri"):
         """
-        generate a list of column names for the s-parameter data
+        Generate a list of column names for the s-parameter data. 
         The names are different for each format.
-        posible format parameters:
-          ri, ma, db, orig  (where orig refers to one of the three others)
-        returns a list of strings.
+
+        Parameters
+        ----------
+        format : str
+          Format: ri, ma, db, orig (where orig refers to one of the three others)
+
+        Returns
+        -------
+        names : list
+            list of strings
+
         """
         names = ['frequency']
         if format == 'orig':
@@ -320,12 +331,23 @@ class Touchstone:
     def get_sparameter_data(self, format='ri'):
         """
         get the data of the s-parameter with the given format.
+
+        Parameters
+        ----------
+        format : str
+          Format: ri, ma, db, orig
+
         supported formats are:
           orig:  unmodified s-parameter data
           ri:    data in real/imaginary
           ma:    data in magnitude and angle (degree)
           db:    data in log magnitute and angle (degree)
-        Returns a list of numpy.arrays
+
+        Returns
+        -------
+        ret: list
+            list of numpy.arrays
+
         """
         ret = {}
         if format == 'orig':
@@ -358,16 +380,29 @@ class Touchstone:
 
         for i,n in enumerate(self.get_sparameter_names(format=format)):
             ret[n] = values[:,i]
+
+        # transpose Touchstone V1 2-port files (.2p), as the order is (11) (21) (12) (22)
+        file_name_ending = self.filename.split('.')[-1].lower()
+        if self.rank == 2 and file_name_ending == "s2p":
+            swaps = [ k for k in ret if '21' in k]
+            for s in swaps:
+                true_s = s.replace('21', '12')
+                ret[s], ret[true_s] = ret[true_s], ret[s]
+
         return ret
 
     def get_sparameter_arrays(self):
         """
-        Returns the s-parameters as a tuple of arrays, where the first element is
-        the frequency vector (in Hz) and the s-parameters are a 3d numpy array.
+        Returns the s-parameters as a tuple of arrays.
+
+        The first element is the frequency vector (in Hz) and the s-parameters are a 3d numpy array.
         The values of the s-parameters are complex number.
-        usage:
+
+        Example
+        -------
           f,a = self.sgetparameter_arrays()
           s11 = a[:,0,0]
+
         """
         v = self.sparameters
 
@@ -414,12 +449,15 @@ class Touchstone:
         status : boolean
             True if the Touchstone file has been produced by HFSS
             False otherwise
-        '''    
-        status = False
+        '''
+        if self.comments is None:
+            return False
+
         if 'exported from hfss' in str.lower(self.comments):
-            status = True
-        return status      
-    
+            return True
+
+        return False
+
     def get_gamma_z0(self):
         '''
         Extracts Z0 and Gamma comments from touchstone file (is provided)
@@ -442,25 +480,42 @@ class Touchstone:
             for line in f:
 
                 # HFSS adds gamma and z0 data in .sNp files using comments.
-                # NB : Each line describe gamma and z0 up to 4 ports
-                #      for N > 4, gamma and z0 are given by additional lines
+                # NB : each line(s) describe gamma and z0. 
+                #  But, depending on the HFSS version, either:
+                #  - up to 4 ports only. 
+                #        for N > 4, gamma and z0 are given by additional lines
+                #  - all gamma and z0 are given on a single line (since 2020R2)
+                # In addition, some spurious '!' can remain in these lines
                 if '! Gamma' in line:
-                    _line = line.replace('! Gamma', '').rstrip()
-                    # case of Nport > 4
-                    for _ in range(self.rank // 5):
-                        _line += next(f).replace('!', '').rstrip()
-                    gamma.append(line2ComplexVector(_line))
+                    _line = line.replace('! Gamma', '').replace('!', '').rstrip()
+
+                    # check how many elements are in the first line
+                    nb_elem = len(_line.split())
+
+                    if nb_elem == 2*self.rank:
+                        # case of all data in a single line
+                        gamma.append(line2ComplexVector(_line.replace('!', '').rstrip()))
+                    else:
+                        # case of Nport > 4 *and* data on additional multiple lines
+                        for _ in range(int(npy.ceil(self.rank/4.0)) - 1):
+                            _line += next(f).replace('!', '').rstrip()
+                        gamma.append(line2ComplexVector(_line))
+
              
                 if '! Port Impedance' in line:
                     _line = line.replace('! Port Impedance', '').rstrip()
-                    # case of Nport > 4
-                    for _ in range(self.rank // 5):
-                        _line += next(f).replace('!', '').rstrip()
-                    z0.append(line2ComplexVector(_line))
+                    nb_elem = len(_line.split())
+
+                    if nb_elem == 2*self.rank:
+                        z0.append(line2ComplexVector(_line.replace('!', '').rstrip()))
+                    else:
+                        for _ in range(int(npy.ceil(self.rank/4.0)) - 1):
+                            _line += next(f).replace('!', '').rstrip()
+                        z0.append(line2ComplexVector(_line))
     
             # If the file does not contain valid port impedance comments, set to default one
             if len(z0) == 0:
-                z0 = self.resistance
+                z0 = npy.complex(self.resistance)
                 #raise ValueError('Touchstone does not contain valid gamma, port impedance comments')
 
 
@@ -594,4 +649,3 @@ def read_zipped_touchstones(ziparchive, dir=""):
             network = Network.zipped_touchstone(fname, ziparchive)
             networks[network.name] = network
     return networks
-

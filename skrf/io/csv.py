@@ -1,17 +1,52 @@
 
 '''
 .. module:: skrf.io.csv
+
 ========================================
 csv (:mod:`skrf.io.csv`)
 ========================================
 
 Functions for reading and writing standard csv files
+----------------------------------------------------
 
 .. autosummary::
-    :toctree: generated/
+   :toctree: generated/
 
-    read_pna_csv
-    pna_csv_2_ntwks
+   read_all_csv
+   AgilentCSV
+
+
+Reading/Writing Agilent 
+------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   read_pna_csv
+   pna_csv_2_ntwks
+   pna_csv_2_ntwks3
+   pna_csv_2_df
+
+Reading/Writing R&S
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   read_zva_dat
+   read_all_zva_dat
+   zva_dat_2_ntwks 
+
+Reading/Writing Anritsu VectorStar
+-----------------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   vectorstar_csv_2_ntwks
+   read_vectorstar_csv
+
+
 '''
 import numpy as npy
 import os
@@ -567,7 +602,7 @@ def pna_csv_2_ntwks(filename):
         name = os.path.splitext(os.path.basename(filename))[0]
         return Network(f=f, s=s, name=name, comments=comments)
     else:
-        for k in range((d.shape[1]-1)/2):
+        for k in range(int((d.shape[1]-1)/2)):
             f = d[:,0]*1e-9
             name = names[k]
             print((names[k], names[k+1]))
