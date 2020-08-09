@@ -98,6 +98,20 @@ class CPWTestCase(MediaTestCase, unittest.TestCase):
             rho=22e-9)
 
 
+class GCPWTestCase(MediaTestCase, unittest.TestCase):
+    def setUp(self):
+        self.frequency = rf.Frequency(75,110,101,'ghz')
+        self.media = rf.media.GCPW(
+            frequency=self.frequency, 
+            w=75e-6, 
+            s=50e-6, 
+            h=1e-3, 
+            t=1e-8, 
+            ep_r=12.9,
+            rho=2.44e-8,
+            tan_delta=2e-4)
+
+
 class RectangularWaveguideTestCase(MediaTestCase, unittest.TestCase):
     def setUp(self):
         self.frequency = rf.Frequency(75,110,101,'ghz')
