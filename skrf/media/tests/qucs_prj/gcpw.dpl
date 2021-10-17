@@ -1,6 +1,6 @@
 <Qucs Schematic 0.0.19>
 <Properties>
-  <View=0,-61,950,800,1,0,0>
+  <View=0,-61,1035,800,1,20,0>
   <Grid=10,10,0>
   <DataSet=gcpw.dat>
   <DataDisplay=gcpw.sch>
@@ -36,6 +36,7 @@
   </Rect>
   <Rect 670 190 240 160 3 #c0c0c0 1 00 1 0 0.2 1 1 -0.1 0.5 1.1 1 -0.1 0.5 1.1 315 0 225 "" "" "">
 	<"Zl" #0000ff 0 3 0 0 0>
+	  <Mkr 1.05e+10 175 -164 3 0 0>
   </Rect>
 </Diagrams>
 <Paintings>

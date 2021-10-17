@@ -64,7 +64,7 @@ class GCPW(CPW):
         self.tan_delta = tan_delta
 
     @property
-    def ep_re0(self):
+    def ep_re0(self): # tested - correct
         '''
         Effective permittivity of the grounded CPW without dispersion.
 
@@ -78,7 +78,7 @@ class GCPW(CPW):
         ts = 0.7 * self.t / self.s
 
         num = (e0 - 1) * ts
-        den = _K_over_Kprime_approx(self.k1) + ts
+        den = _K_over_Kprime(self.k1) + ts
 
         return e0 - (num / den)
     
@@ -87,8 +87,8 @@ class GCPW(CPW):
         '''
         Filling factor per equation 12.11 of Qucs technical paper.
         '''
-        q3 = _K_over_Kprime_approx(self.k3)
-        return q3 / (_K_over_Kprime_approx(self.k1) + q3)
+        q3 = _K_over_Kprime(self.k3)
+        return q3 / (_K_over_Kprime(self.k1) + q3)
 
     @property
     def k3(self):
@@ -96,7 +96,7 @@ class GCPW(CPW):
         Intermediary parameter - per equation 12.12 of Qucs technical paper.
         '''
         t = lambda x: tanh((pi * x) / (4 * self.h))
-        return t(self.w) / t(self.w + 2 * self.s)
+        return t(self.w) / t(self.w + (2 * self.s))
 
     @property
     def ke(self):
@@ -109,7 +109,7 @@ class GCPW(CPW):
         return k1 + (1 - (k1 ** 2)) * delta / (2 * self.s)
 
     @property
-    def ep_re(self):
+    def ep_re(self): # tested - correct
         '''
         Effective permittivity of the grounded CPW.
 
@@ -123,7 +123,7 @@ class GCPW(CPW):
         return (sr_er0 + (num / den)) ** 2
 
     @property
-    def G(self):
+    def G(self): # tested - correct
         '''
         Intermediary parameter - per equation 12.20 of Qucs technical paper.
         '''
@@ -141,7 +141,7 @@ class GCPW(CPW):
         return c / (4 * self.h * sqrt(self.ep_r - 1)) 
 
     @property
-    def Z0(self):
+    def Z0(self): # close to correct when using approximation for K/K'
         '''
         Characteristic impedance.
 
@@ -153,8 +153,9 @@ class GCPW(CPW):
         else:
             k1 = self.ke
 
-        z = (60 * pi / sqrt(self.ep_re))
-        return z / (_K_over_Kprime_approx(k1) + _K_over_Kprime_approx(self.k3))
+        z = 60 * pi
+        z = z / (_K_over_Kprime(k1) + _K_over_Kprime(self.k3))
+        return z / sqrt(self.ep_re)
 
     @property
     def alpha_dielectric(self):
@@ -180,7 +181,9 @@ class GCPW(CPW):
         if self.rho is not None and self.t is not None:
             alpha += self.alpha_conductor
 
-        beta = 1j * 2 * pi * self.frequency.f * sqrt(self.ep_re * epsilon_0 * mu_0)
+        #beta = 1j * 2 * pi * self.frequency.f * sqrt(self.ep_re * epsilon_0 * mu_0)
+
+        beta = 1j * self.frequency.f * sqrt(self.ep_re) * 2 * pi / c
 
         return alpha + beta
 
@@ -201,7 +204,8 @@ def _K_over_Kprime_approx(k):
     return piecewise(k, conditions, functions)
 
 def _K_over_Kprime(k):
-    return ellipk(k) / ellipk(_comp_mod(k))
+    return _K_over_Kprime_approx(k)
+    #return ellipk(k) / ellipk(_comp_mod(k))
 
 def _comp_mod(k):
     return sqrt(1 - k**2)
