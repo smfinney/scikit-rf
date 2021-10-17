@@ -14,12 +14,12 @@ ipython `notebook <http://ipython.org/notebook.html>`_
     Installation
     Introduction
     Networks
+    Connecting_Networks
     Plotting
     NetworkSet
     Circuit
     VirtualInstruments 
     Calibration
+    Deembedding
     Media       
-
-
-
+    VectorFitting

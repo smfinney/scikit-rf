@@ -5,7 +5,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'scikit-rf'
-copyright = '2020, scikit-rf team'
+copyright = '2021, scikit-rf team'
 author = 'scikit-rf team'
 
 # -- General configuration ---------------------------------------------------
@@ -63,6 +63,9 @@ nbsphinx_allow_errors = True
 nbsphinx_kernel_name = 'python'
 numpydoc_show_class_members = False
 nbsphinx_timeout = 120
+
+# Autodoc settings
+autodoc_typehints = "description"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

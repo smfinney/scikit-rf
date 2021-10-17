@@ -1,6 +1,4 @@
 
-from six.moves import xrange # for Python3 compatibility
-
 from .frequency import Frequency
 from .mathFunctions import *
 from .plotting import plot_complex_rectangular,plot_rectangular, smith
@@ -11,7 +9,7 @@ import numpy as npy
 from numpy import fft
 import matplotlib.pyplot as plb
 
-from IPython.display import Image, SVG, Math
+from IPython.display import Image
 from IPython.core.pylabtools import print_figure
 
 from abc import ABCMeta, abstractmethod
@@ -602,7 +600,7 @@ class Network(object):
         Return a windowed version of s-matrix. Used in time-domain analysis.
 
         When using time domain through :attr:`s_time_db`,
-        or similar properties, the spectrum is ussually windowed,
+        or similar properties, the spectrum is usually windowed,
         before the IFFT is taken. This is done to
         compensate for the band-pass nature of a spectrum [1]_ .
 
@@ -756,12 +754,12 @@ def s2z(s,z0=50):
 
     s[s==1.] = 1. + 1e-12 # solve numerical singularity
     s[s==-1.] = -1. + 1e-12 # solve numerical singularity
-    for fidx in xrange(s.shape[0]):
+    for fidx in range(s.shape[0]):
         sqrtz0 = npy.mat(npy.sqrt(npy.diagflat(z0[fidx])))
         z[fidx] = sqrtz0 * (I-s[fidx])**-1 * (I+s[fidx]) * sqrtz0
     return z
 
-def s2y(s,z0=50):
+def s2y(s, z0=50):
     '''
     convert scattering parameters [#]_ to admittance parameters [#]_
 
@@ -813,7 +811,7 @@ def s2y(s,z0=50):
     I = npy.mat(npy.identity(s.shape[1]))
     s[s==-1.] = -1. + 1e-12 # solve numerical singularity
     s[s==1.] = 1. + 1e-12 # solve numerical singularity
-    for fidx in xrange(s.shape[0]):
+    for fidx in range(s.shape[0]):
         sqrty0 = npy.mat(npy.sqrt(npy.diagflat(1.0/z0[fidx])))
         y[fidx] = sqrty0*(I-s[fidx])*(I+s[fidx])**-1*sqrty0
     return y
@@ -926,7 +924,7 @@ def z2s(z, z0=50):
     z0 = fix_z0_shape(z0, nfreqs, nports)
     s = npy.zeros(z.shape, dtype='complex')
     I = npy.mat(npy.identity(z.shape[1]))
-    for fidx in xrange(z.shape[0]):
+    for fidx in range(z.shape[0]):
         sqrty0 = npy.mat(npy.sqrt(npy.diagflat(1.0/z0[fidx])))
         s[fidx] = (sqrty0*z[fidx]*sqrty0 - I) * (sqrty0*z[fidx]*sqrty0 + I)**-1
     return s
@@ -975,7 +973,7 @@ def z2y(z):
     '''
     z = z.copy() # to prevent the original array from being altered
     z = fix_parameter_shape(z)
-    return npy.array([npy.mat(z[f,:,:])**-1 for f in xrange(z.shape[0])])
+    return npy.array([npy.mat(z[f,:,:])**-1 for f in range(z.shape[0])])
 
 def z2t(z):
     '''
@@ -1073,7 +1071,7 @@ def y2s(y, z0=50):
     z0 = fix_z0_shape(z0, nfreqs, nports)
     s = npy.zeros(y.shape, dtype='complex')
     I = npy.mat(npy.identity(s.shape[1]))
-    for fidx in xrange(s.shape[0]):
+    for fidx in range(s.shape[0]):
         sqrtz0 = npy.mat(npy.sqrt(npy.diagflat(z0[fidx])))
         s[fidx] = (I - sqrtz0*y[fidx]*sqrtz0) * (I + sqrtz0*y[fidx]*sqrtz0)**-1
     return s
@@ -1122,7 +1120,7 @@ def y2z(y):
     '''
     y = y.copy() # to prevent the original array from being altered
     y = fix_parameter_shape(y)
-    return npy.array([npy.mat(y[f,:,:])**-1 for f in xrange(y.shape[0])])
+    return npy.array([npy.mat(y[f,:,:])**-1 for f in range(y.shape[0])])
 
 def y2t(y):
     '''
@@ -1171,7 +1169,7 @@ def t2s(t):
     '''
     converts scattering transfer parameters [#]_ to scattering parameters [#]_
 
-    transfer parameters are also refered to as
+    transfer parameters are also referred to as
     'wave cascading matrix', this function only operates on 2-port
     networks. this function only operates on 2-port scattering
     parameters.
