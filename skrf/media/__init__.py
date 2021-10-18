@@ -40,6 +40,7 @@ from .media import *
 from .distributedCircuit import DistributedCircuit
 from .freespace import Freespace
 from .cpw import CPW
+from .gcpw import GCPW
 from .rectangularWaveguide import RectangularWaveguide
 from .circularWaveguide import CircularWaveguide
 from .coaxial import Coaxial
