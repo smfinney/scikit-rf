@@ -120,7 +120,7 @@ class GCPW(Media):
         See equation 12.12 in the qucs documentation.
 
         """
-        f = lambda x: tanh(pi * x / (4 * self.h))
+        f = lambda x: tanh((pi / 4) * (x / self.h))
 
         return f(self.w) / f(self.w + 2 * self.s)
 
@@ -196,7 +196,7 @@ class GCPW(Media):
     @staticmethod
     def K_ratio(k: NumberLike) -> NumberLike:
         """
-        K_ratio is the ratio of the complete elliptic integral of k to its complement.
+        K_ratio is the approximate ratio of the complete elliptic integral of k to its complement.
 
         See equations 12.4 and 12.5 in qucs documentation.
         """
@@ -209,3 +209,4 @@ class GCPW(Media):
 
         k_p = sqrt(1 - k**2)
         return pi / log(2 * (1 + sqrt(k_p)) / (1 - sqrt(k_p)))
+
