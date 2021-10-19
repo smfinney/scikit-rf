@@ -27,11 +27,18 @@ class GCPWTestCase(unittest.TestCase):
             'er': 2.98,
         },
 
-        # Sample geometry without metalization
+        # Sample geometry without metallization thickness
         {
             'line_args': {'w': 1.6e-3, 's': 3e-4, 'h': 1.524e-3, 'ep_r': 4.4},
             'z0': 50.106,
             'er': 2.84,
+        },
+
+         # Sample geometry with metallization thickness
+        {
+            'line_args': {'w': 1.6e-3, 's': 3e-4, 'h': 1.524e-3, 'ep_r': 4.4, 't': 1e-5},
+            'z0': 49.617,
+            'er': 2.80,
         },
     ]
 

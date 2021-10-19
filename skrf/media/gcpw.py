@@ -86,17 +86,40 @@ class GCPW(Media):
                 (self.w,self.s)
         return output
 
+
     def __repr__(self) -> str:
         return self.__str__()
+
+
+    @property
+    def ep_re0(self) -> NumberLike:
+        """
+        Effective permittivity of the grounded coplanar waveguide at f=0.
+
+        See equations 12.10, 12.11, and 12.18 in the qucs documentation.
+        """
+        kr1 = self.K_ratio(self.k1)
+        kr3 = self.K_ratio(self.k3)
+        q = kr3 / (kr1 + kr3)
+
+        er = 1 + q * (self.ep_r - 1)
+
+        if self.t is None:
+            return er
+
+        # Compensate for metallization thickness
+        tr = 0.7 * self.t / self.s
+
+        return er - (tr * (er - 1) / (kr1 + tr))
+
 
     @property
     def ep_re(self) -> NumberLike:
         """
         Effective permittivity of the grounded coplanar waveguide.
-
-        See equation 12.10 in the qucs documentation.
         """
-        return 1 + self.q * (self.ep_r - 1)
+        return self.ep_re0
+
 
     @property
     def k1(self) -> NumberLike:
@@ -112,6 +135,18 @@ class GCPW(Media):
         """
         return self.w / (self.w + 2 * self.s)
 
+
+    @property
+    def ke(self) -> NumberLike:
+        """
+        Intermediary parameter used in correcting for metalization thickness.
+
+        See equation 12.17 in the qucs documentation.
+        """
+        d = (1.25 * self.t / pi) * (1 + log(4 * pi * self.w / self.t))
+        return self.k1 + (1 - self.k1 ** 2) * (d / (2 * self.s))
+
+
     @property
     def k3(self) -> NumberLike:
         """
@@ -124,17 +159,6 @@ class GCPW(Media):
 
         return f(self.w) / f(self.w + 2 * self.s)
 
-    @property
-    def q(self) -> NumberLike:
-        """
-        Intermediary parameter (filling factor.)
-
-        See equation 12.11 in the qucs documentation.
-
-        """
-        kr3 = self.K_ratio(self.k3)
-
-        return kr3 / (self.K_ratio(self.k1) + kr3)
 
     @property
     def Z0(self) -> NumberLike:
@@ -143,9 +167,17 @@ class GCPW(Media):
 
         See equation 12.13 in the qucs documentation.
         """
-        kr1 = self.K_ratio(self.k1)
+        
+        # Compensate for metallization thickness
+        if self.t is None:
+            kr1 = self.K_ratio(self.k1)
+        else:
+            kr1 = self.K_ratio(self.ke)
+
         kr3 = self.K_ratio(self.k3)
+
         return (60 * pi / sqrt(self.ep_re)) * (1 / (kr1 + kr3)) * ones(len(self.frequency.f), dtype='complex')
+
 
     @property
     def alpha_conductor(self) -> NumberLike:
@@ -175,6 +207,7 @@ class GCPW(Media):
         return ((r_s * sqrt(ep_re)/(480*pi*K(k1)*K_p(k1)*(1-k1**2) ))*\
                 (1./a * (pi+log((8*pi*a*(1-k1))/(t*(1+k1)))) +\
                  1./b * (pi+log((8*pi*b*(1-k1))/(t*(1+k1))))))
+        
 
     @property
     def gamma(self) -> NumberLike:
