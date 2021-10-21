@@ -10,9 +10,9 @@ gcpw (:mod:`skrf.media.gcpw`)
    GCPW
 
 """
-from scipy.constants import epsilon_0, mu_0
+from scipy.constants import epsilon_0, mu_0, c
 from scipy.special import ellipk
-from numpy import pi, sqrt, log, tanh, zeros, ones
+from numpy import pi, sqrt, log, tanh, exp, zeros, ones
 from .media import Media
 from ..tlineFunctions import surface_resistivity
 from ..constants import NumberLike
@@ -30,8 +30,6 @@ class GCPW(Media):
     by the qucs project [#]_ .
     The variables and properties of this class are coincident with
     their derivations.
-
-    Dispersion effects are not currently modeled.
 
     Parameters
     ----------
@@ -118,7 +116,18 @@ class GCPW(Media):
         """
         Effective permittivity of the grounded coplanar waveguide.
         """
-        return self.ep_re0
+        #return self.ep_re0
+
+        p = log(self.w / self.h)
+        u = 0.54 - 0.64 * p + 0.015 * p ** 2
+        v = 0.43 - 0.86 * p + 0.54 * p ** 2
+        g = exp(u * log(self.w / self.s) + v)
+        fte = c / (4 * self.h * sqrt(self.ep_r - 1))
+
+        num = sqrt(self.ep_r) - sqrt(self.ep_re0)
+        den = 1 + g * (self.frequency.f / fte) ** -1.8
+
+        return (sqrt(self.ep_re0) + (num / den)) ** 2
 
 
     @property
@@ -176,7 +185,7 @@ class GCPW(Media):
 
         kr3 = self.K_ratio(self.k3)
 
-        return (60 * pi / sqrt(self.ep_re)) * (1 / (kr1 + kr3)) * ones(len(self.frequency.f), dtype='complex')
+        return (60 * pi / sqrt(self.ep_re)) * (1 / (kr1 + kr3))
 
 
     @property
@@ -193,21 +202,23 @@ class GCPW(Media):
         --------
         surface_resistivity : calculates surface resistivity
         """
-        if self.rho is None or self.t is None:
-            raise(AttributeError('must provide values conductivity and conductor thickness to calculate this. see initializer help'))
+        if self.rho is None:
+            raise AttributeError('Conductor loss calculation requires conductivity to be defined.')
 
-        t, k1, ep_re = self.t, self.k1,self.ep_re
-        r_s = surface_resistivity(f=self.frequency.f, rho=self.rho, \
-                mu_r=1)
-        a = self.w/2.
-        b = self.s+self.w/2.
-        K = ellipk      # complete elliptical integral of first kind
-        K_p = lambda x: ellipk(sqrt(1-x**2)) # ellipk's compliment
+        if self.t is None:
+            raise AttributeError('Conductor loss calculation requires metallization thickness to be defined.')
 
-        return ((r_s * sqrt(ep_re)/(480*pi*K(k1)*K_p(k1)*(1-k1**2) ))*\
-                (1./a * (pi+log((8*pi*a*(1-k1))/(t*(1+k1)))) +\
-                 1./b * (pi+log((8*pi*b*(1-k1))/(t*(1+k1))))))
-        
+        t, k1, ep_re = self.t, self.k1, self.ep_re
+        r_s = surface_resistivity(f=self.frequency.f, rho=self.rho, mu_r=1)
+
+        a = self.w / 2
+        b = self.s + self.w / 2
+        K = ellipk(k1)
+        K_p = ellipk(sqrt(1 - k1 ** 2))
+
+        term = lambda x: (1 / x) * (pi + log(8 * pi * x * (1 - k1) / (t * (1 + k1))))
+
+        return (r_s * sqrt(ep_re) * term(a) + term(b)) / (480 * pi * K * K_p * (1 - k1 ** 2))
 
     @property
     def gamma(self) -> NumberLike:
@@ -218,7 +229,7 @@ class GCPW(Media):
         --------
         alpha_conductor : calculates attenuation due to conductor losses
         """
-        beta = 1j*2*pi*self.frequency.f*sqrt(self.ep_re*epsilon_0*mu_0)
+        beta = 1j * 2 * pi * self.frequency.f * sqrt(self.ep_re * epsilon_0 * mu_0)
 
         if (self.rho is None) or (self.t is None):
             return beta
