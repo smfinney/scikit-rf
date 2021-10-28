@@ -116,18 +116,20 @@ class GCPW(Media):
         """
         Effective permittivity of the grounded coplanar waveguide.
         """
-        #return self.ep_re0
+        w, s, h, ep_r = self.w, self.s, self.h, self.ep_r
 
-        p = log(self.w / self.h)
-        u = 0.54 - 0.64 * p + 0.015 * p ** 2
-        v = 0.43 - 0.86 * p + 0.54 * p ** 2
-        g = exp(u * log(self.w / self.s) + v)
-        fte = c / (4 * self.h * sqrt(self.ep_r - 1))
+        p = log(w / h)
+        u = 0.54 - 0.64 * p + 0.015 * p * p
+        v = 0.43 - 0.86 * p + 0.54 * p * p
+        g = exp(u * log(w / s) + v)
 
-        num = sqrt(self.ep_r) - sqrt(self.ep_re0)
+        fte = c / (4 * h * sqrt(ep_r - 1))
+        ser0 = sqrt(self.ep_re0)
+
+        num = sqrt(ep_r) - ser0
         den = 1 + g * (self.frequency.f / fte) ** -1.8
 
-        return (sqrt(self.ep_re0) + (num / den)) ** 2
+        return (ser0 + (num / den)) ** 2
 
 
     @property
@@ -142,7 +144,8 @@ class GCPW(Media):
                 k = \\frac{w}{w + 2s}
 
         """
-        return self.w / (self.w + 2 * self.s)
+        w, s = self.w, self.s
+        return w / (w + s + s)
 
 
     @property
@@ -152,8 +155,10 @@ class GCPW(Media):
 
         See equation 12.17 in the qucs documentation.
         """
-        d = (1.25 * self.t / pi) * (1 + log(4 * pi * self.w / self.t))
-        return self.k1 + (1 - self.k1 ** 2) * (d / (2 * self.s))
+        t, w, s, k1 = self.t, self.w, self.s, self.k1
+
+        d = 1.25 * t * (1 + log(4 * pi * w / t)) / pi
+        return k1 + d * (1 - (k1 ** 2)) / (2 * s)
 
 
     @property
@@ -164,9 +169,11 @@ class GCPW(Media):
         See equation 12.12 in the qucs documentation.
 
         """
-        f = lambda x: tanh((pi / 4) * (x / self.h))
+        w, h, s = self.w, self.h, self.s
 
-        return f(self.w) / f(self.w + 2 * self.s)
+        f = lambda x: tanh((pi * x) / (h * 4))
+
+        return f(w) / f(w + 2 * s)
 
 
     @property
@@ -185,13 +192,15 @@ class GCPW(Media):
 
         kr3 = self.K_ratio(self.k3)
 
-        return (60 * pi / sqrt(self.ep_re)) * (1 / (kr1 + kr3))
+        return (60 * pi) / (sqrt(self.ep_re) * (kr1 + kr3))
 
 
     @property
     def alpha_conductor(self) -> NumberLike:
         """
         Losses due to conductor resistivity.
+
+        See equation 12.26 in the qucs documentation.
 
         Returns
         -------
@@ -208,18 +217,36 @@ class GCPW(Media):
         if self.t is None:
             raise AttributeError('Conductor loss calculation requires metallization thickness to be defined.')
 
-        t, k1, ep_re = self.t, self.k1, self.ep_re
+        t, s, w, k1, ep_re = self.t, self.s, self.w, self.k1, self.ep_re
         r_s = surface_resistivity(f=self.frequency.f, rho=self.rho, mu_r=1)
 
-        a = self.w / 2
-        b = self.s + self.w / 2
+        a = w / 2
+        b = a + s
+        ks = 1 - (k1 ** 2)
+
         K = ellipk(k1)
-        K_p = ellipk(sqrt(1 - k1 ** 2))
+        K_p = ellipk(sqrt(ks))
 
-        term = lambda x: (1 / x) * (pi + log(8 * pi * x * (1 - k1) / (t * (1 + k1))))
+        term = lambda x: (pi + log(8 * pi * x * (1 - k1) / (t * (1 + k1)))) / x
 
-        return (r_s * sqrt(ep_re) * term(a) + term(b)) / (480 * pi * K * K_p * (1 - k1 ** 2))
+        return (r_s * sqrt(ep_re) * (term(a) + term(b))) / (480 * pi * K * K_p * ks)
 
+
+    @property
+    def alpha_dielectric(self) -> NumberLike:
+        """
+        Losses in dielectric.
+
+        See equation 11.79 in the qucs documentation.
+
+        Returns
+        -------
+        alpha_dielectric : array-like
+                attenuation due to conductor losses
+        """
+        pass
+    
+ 
     @property
     def gamma(self) -> NumberLike:
         """
@@ -248,9 +275,11 @@ class GCPW(Media):
         if k < 0 or k > 1:
             raise ValueError("Function defined on range 0 <= k <= 1")
 
-        if k > (1 / sqrt(2)):
-            return log(2 * (1 + sqrt(k)) / (1 - sqrt(k))) / pi
+        term = lambda x: log(2 * (1 + sqrt(x)) / (1 - sqrt(x)))
 
-        k_p = sqrt(1 - k**2)
-        return pi / log(2 * (1 + sqrt(k_p)) / (1 - sqrt(k_p)))
+        if k > (1 / sqrt(2.0)):
+            return term(k) / pi
+
+        k_p = sqrt(1 - k ** 2)
+        return pi / term(k_p)
 

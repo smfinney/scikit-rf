@@ -13,7 +13,6 @@ from numpy.testing import assert_array_almost_equal, run_module_suite
 class GCPWTestCase(unittest.TestCase):
 
     # Test parameters
-    cmp_precision = 1 # best we can do for now
 
     freq_ext = rf.Frequency(start=100, stop=10000, npoints=101, unit='MHz')
 
